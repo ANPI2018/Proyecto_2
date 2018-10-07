@@ -145,6 +145,9 @@ namespace anpi
     // return regType();
     //}
     
+    template<typename T, class regType>
+    regType mm_sub(regType, regType);
+    
 #ifdef __AVX512F__
     template<>
     inline __m512d __attribute__((__always_inline__))
@@ -197,6 +200,16 @@ namespace anpi
       return _mm512_add_epi8(a,b);
     }
 #elif defined __AVX__
+    template<>
+    inline __m256d __attribute__((__always_inline__))
+    mm_sub<double>(__m256d a,__m256d b) {
+      return _mm256_sub_pd(a,b);
+    }
+    template<>
+    inline __m256 __attribute__((__always_inline__))
+    mm_sub<double>(__m256 a,__m256 b) {
+      return _mm256_sub_ps(a,b);
+    }
     template<>
     inline __m256d __attribute__((__always_inline__))
     mm_add<double>(__m256d a,__m256d b) {
@@ -379,15 +392,66 @@ namespace anpi
     /*
      * Subtraction
      */
+     
+    template<typename T, class Alloc, typename regType>
+    inline void subSIMD(const Matrix<T, Alloc>& a, const Matrix<T, Alloc>& b, Matrix<T, Alloc>& c) {
 
-    // Fall back implementations
+      static_assert(!extract_alignment<Alloc>::aligned ||
+          (extract_alignment<Alloc>::value >= sizeof(regType)),
+          "Insufficient alignment for the registers used");
 
-    // In-copy implementation c=a-b
-    template<typename T,class Alloc>
+      const size_t tentries = a.rows() * a.dcols();
+      c.allocate(a.rows(), a.cols());
+
+      regType* here = reinterpret_cast<regType*>(c.data());
+      const size_t blocks = (tentries * sizeof(T) + (sizeof(regType) - 1)) / sizeof(regType);
+      regType * const end = here + blocks;
+      const regType* aptr = reinterpret_cast<const regType*>(a.data());
+      const regType* bptr = reinterpret_cast<const regType*>(b.data());
+
+      for (; here != end;) {
+        *here++ = mm_sub<T>(*aptr++, *bptr++);
+      }
+    } //subSIMD
+    
+    
+    /*
+     * In-copy implementation c=a-b
+     * For AVX compatible types
+     */
+    template<typename T, class Alloc, typename std::enable_if<
+        (std::is_same<T, double>::value || std::is_same<T, float>::value), int>::type = 0>
     inline void subtract(const Matrix<T,Alloc>& a,
                          const Matrix<T,Alloc>& b,
                          Matrix<T,Alloc>& c) {
-      ::anpi::fallback::subtract(a,b,c);
+
+      assert((a.rows() == b.rows()) && (a.cols() == b.cols()));
+
+      if (is_aligned_alloc < Alloc > ::value) {
+#ifdef __AVX__
+        subSIMD<T, Alloc, typename avx_traits<T>::reg_type>(a,b,c);
+#else
+        ::anpi::fallback::subtract(a, b, c);
+#endif
+      }
+      else {
+        ::anpi::fallback::subtract(a, b, c);
+      }
+    }// subtract
+    
+
+    // Fall back implementations
+
+    /**
+     * In-copy implementation c=a-b
+     * For non AVX compatible types
+     */
+    template<typename T, class Alloc, typename std::enable_if<
+        (!std::is_same<T, double>::value && !std::is_same<T, float>::value), int>::type = 0>
+    inline void subtract(const Matrix<T, Alloc>& a, const Matrix<T, Alloc>& b,
+        Matrix<T, Alloc>& c) {
+
+      ::anpi::fallback::subtract(a, b, c);
     }
 
     // In-place implementation a = a-b
