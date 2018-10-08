@@ -113,6 +113,96 @@ public:
   }
 };
 
+
+/**
+   * Subtraction
+   */
+
+  template<typename T>
+  class benchSubOnCopyFallback: public benchAdd<T> {
+  public:
+    //Constructor
+    benchSubOnCopyFallback(const size_t n) :
+        benchAdd<T>(n) {
+    }
+
+    // Evaluate sub on-copy fallback
+    inline void eval() {
+      anpi::fallback::subtract(this->_a, this->_b, this->_c);
+    }
+  };
+
+  /// Evaluation method for on-copy subtraction
+  template<typename T>
+  class benchSubOnCopySIMD: public benchAdd<T> {
+  public:
+    ///Constructor
+    benchSubOnCopySIMD(const size_t n) :
+        benchAdd<T>(n) {
+    }
+
+    // Evaluate sub on-copy
+    inline void eval() {
+      anpi::simd::subtract(this->_a, this->_b, this->_c);
+    }
+  };
+  
+
+/**
+ * Instantiate and test the methods of the Matrix class
+ */
+BOOST_AUTO_TEST_CASE( Sub ) {
+
+    std::vector<size_t> sizes = { 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536,
+        2048, 3072, 4096 };
+
+    const size_t n = sizes.back();
+    const size_t repetitions = 100;
+    std::vector<anpi::benchmark::measurement> times;
+
+    {
+      benchSubOnCopyFallback<float> bsoc(n);
+
+      // Measure on-copy subtraction
+      ANPI_BENCHMARK(sizes, repetitions, times, bsoc);
+
+      ::anpi::benchmark::write("sub_on_copy_float_fb.txt", times);
+      ::anpi::benchmark::plotRange(times, "On-copy subtraction (float) fallback", "r");
+    }
+
+    {
+      benchSubOnCopyFallback<float> bsoc(n);
+
+      // Measure on-copy subtraction
+      ANPI_BENCHMARK(sizes, repetitions, times, bsoc);
+
+      ::anpi::benchmark::write("sub_on_copy_double_fb.txt", times);
+      ::anpi::benchmark::plotRange(times, "On-copy subtraction (double) fallback", "g");
+    }
+
+    {
+      benchSubOnCopySIMD<float> bsoc(n);
+
+      // Measure on-copy subtraction
+      ANPI_BENCHMARK(sizes, repetitions, times, bsoc);
+
+      ::anpi::benchmark::write("sub_on_copy_float_fb.txt", times);
+      ::anpi::benchmark::plotRange(times, "On-copy subtraction (float) SIMD", "b");
+    }
+
+    {
+      benchSubOnCopySIMD<double> bsoc(n);
+
+      // Measure on-copy subtraction
+      ANPI_BENCHMARK(sizes, repetitions, times, bsoc);
+
+      ::anpi::benchmark::write("sub_on_copy_double_fb.txt", times);
+      ::anpi::benchmark::plotRange(times, "On-copy subtraction (double) SIMD", "m");
+    }
+
+    ::anpi::benchmark::show();
+  }
+
 /**
  * Instantiate and test the methods of the Matrix class
  */
