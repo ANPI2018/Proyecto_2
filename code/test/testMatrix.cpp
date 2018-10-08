@@ -24,7 +24,9 @@
 
 
 // normal allocator
-
+using namespace std;
+using namespace anpi;
+using namespace fallback;
 
 typedef std::complex<double> dcomplex;
 
@@ -91,6 +93,48 @@ typedef anpi::Matrix<int     ,aralloc> arimatrix;
 
 
 BOOST_AUTO_TEST_SUITE( Matrix )
+
+template<typename T>
+void testSubtract(){
+	anpi::Matrix<T> a;
+	anpi::Matrix<T> b;
+	anpi::Matrix<T> c;
+	a={{1,2,3},{4,5,6},{7,8,9}};
+	b={{10,11,12},{13,14,15},{16,17,18}};
+
+	//test a-b={{-9,-9,-9},{-9,-9,-9},{-9,-9,-9}}
+	{
+		fallback::subtract(a,b,c);
+		for (size_t i=0;i<c.rows();++i) {
+					for (size_t j=0;j<c.cols();++j) {
+			            		BOOST_CHECK(c(i,j)==-9);
+					}
+				}
+	}
+
+
+	//test b-a={{9,9,9},{9,9,9},{9,9,9}}
+	{
+		fallback::subtract(b,a,c);
+		for (size_t i=0;i<c.rows();++i) {
+					for (size_t j=0;j<c.cols();++j) {
+			            		BOOST_CHECK(c(i,j)==9);
+					}
+				}
+	}
+
+	//test a-a={{0,0,0},{0,0,0},{0,0,0}}
+	{
+		fallback::subtract(a,a,c);
+		for (size_t i=0;i<c.rows();++i) {
+					for (size_t j=0;j<c.cols();++j) {
+			            		BOOST_CHECK(c(i,j)==0);
+					}
+				}
+	}
+
+}
+
 
 template<class M>
 void testConstructors() {
@@ -287,8 +331,14 @@ void testArithmetic() {
   } 
 }
 
+BOOST_AUTO_TEST_CASE(Subtract) {
+	testSubtract<double>();
+	testSubtract<float>();
+}
+
 BOOST_AUTO_TEST_CASE(Arithmetic) {
-  dispatchTest(testArithmetic);  
+	dispatchTest(testArithmetic);
+
 }
   
 BOOST_AUTO_TEST_SUITE_END()
