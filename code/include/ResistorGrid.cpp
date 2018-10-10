@@ -28,6 +28,7 @@ namespace anpi {
    *
    * @param[in] filename Name of the map image
    */
+   /*
   void ResistorGrid::loadMap(std::string filename) {
     std::string mapPath = std::string( ANPI_DATA_PATH) + "/" + filename;
 
@@ -42,45 +43,41 @@ namespace anpi {
     // And transform it to a SIMD-enabled matrix
     anpi::Matrix<float> tmp(amapTmp);
     this->rawMap_ = tmp;
-  }
+  }*/
 
 
   /**
    * Maps two nodes of the resistor grid to the corresponding resistor index
    *
-   * @param[in] row1 Row of the first node
-   * @param[in] col1 Column of the first node
-   * @param[in] row2 Row of the second node
-   * @param[in] col2 Column of the second node
-   *
    * @return index of the resistor between the two nodes
    */
   std::size_t ResistorGrid::nodesToIndex(const std::size_t row1,
-      const std::size_t col1, const std::size_t row2, const std::size_t col2) {
+      const std::size_t col1, const std::size_t row2, const std::size_t col2, std::vector<IndexPair>& vector) {
+      
 
-    std::size_t resistorIndx = 0;
-    if ((row1 == row2) && (col1 == col2))
-      throw anpi::Exception("Invalid node index: Same node");
-
-    //Horizontal resistor
-    if ((row1 == row2)
-        && ((std::max(col1, col2) - std::min(col1, col2)) == 1)) {
-      resistorIndx = row1 * (this->rawMap_.cols() - 1) + std::min(col1, col2);
-    }
-
-    //Vertical resistor
-    else if (((std::max(row1, row2) - std::min(row1, row2)) == 1)
-        && (col1 == col2)) {
-      resistorIndx = this->rawMap_.rows() * (this->rawMap_.cols() - 1)
-          + std::min(row1, row2) * this->rawMap_.cols() + col2;
-    }
-
-    //Invalid mapping of nodes
-    else {
-      throw anpi::Exception("Invalid mapping of nodes");
-    }
-    return resistorIndx;
-  } // nodesToIndex
+		if(row1 != row2){
+			if(col1 != col2)
+				throw anpi::Exception("Nodos no adyacentes");
+			else{
+				IndexPair resistencia;
+				resistencia.col1 = col1;
+				resistencia.row1 = row1;
+				resistencia.col2 = col2;
+				resistencia.row2 = row2;
+				vector.push_back(resistencia);
+			}
+		}
+		else{
+			IndexPair resistencia;
+			resistencia.col1 = col1;
+			resistencia.row1 = row1;
+			resistencia.col2 = col2;
+			resistencia.row2 = row2;
+			vector.push_back(resistencia);
+		}
+		std::size_t resistorIndex = vector.size() -1;
+		return resistorIndex;
+	} // nodesToIndex
 
 
   /**
@@ -91,43 +88,11 @@ namespace anpi {
    *
    * @return Indexpair struct with the indexes grid nodes
    */
-  IndexPair ResistorGrid::indexToNodes(const std::size_t idx) {
-
-    if (idx > this->rawMap_.rows())
-      throw anpi::Exception("Invalid resistor index: outside grid");
-
-    IndexPair resistor = { };
-
-    //Index corresponds to an horizontal resistor
-    if (idx < ((this->rawMap_.cols() - 1) * this->rawMap_.rows())) {
-      for (size_t i = 0; i < this->rawMap_.rows(); ++i) {
-        if (i * (this->rawMap_.cols() - 1) <= idx
-            && idx < (this->rawMap_.cols() - 1) * (i + 1)) {
-          resistor.row1 = i;
-          break;
-        }
-        resistor.row2 = resistor.row1;
-        resistor.col1 = idx - resistor.row1 * (this->rawMap_.cols() - 1);
-        resistor.col2 = resistor.col1 + 1;
-      }
-    }
-
-    //Index corresponds to a vertical resistor
-    else {
-      size_t verticalR = this->rawMap_.rows() * (this->rawMap_.cols() - 1);
-      for (std::size_t i = 0; i < this->rawMap_.rows(); ++i) {
-        if (idx >= (verticalR + i * this->rawMap_.cols())
-            && idx < (verticalR + (i + 1) * this->rawMap_.cols())) {
-          resistor.row1 = 1;
-          break;
-        }
-      }
-      resistor.row2 = resistor.row1 + 1;
-      resistor.col1 = idx - verticalR - resistor.row1 * this->rawMap_.cols();
-      resistor.col2 = resistor.col1;
-    }
-
-    return resistor;
+  IndexPair ResistorGrid::indexToNodes(const std::size_t idx, const std::vector<IndexPair>& vector) {
+		
+		IndexPair resistor;
+		resistor = vector[idx];
+		return resistor;		
   } // indexToNodes
 
 

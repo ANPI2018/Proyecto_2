@@ -53,12 +53,12 @@ struct IndexPair{
      * Maps the index of the terminal nodes of a resistor to a linear index
      */
     std::size_t nodesToIndex(const std::size_t row1, const std::size_t col1, const std::size_t row2,
-        const std::size_t col2);
+        const std::size_t col2, std::vector<IndexPair>& vector);
 
     /**
      * Convert and index to the pair of node coordinates
      */
-    IndexPair indexToNodes(const std::size_t idx);
+    IndexPair indexToNodes(const std::size_t idx, const std::vector<IndexPair>& vector);
 
     /**
      * Construct the grid from the given file
