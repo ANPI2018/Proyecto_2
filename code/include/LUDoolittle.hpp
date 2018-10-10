@@ -125,7 +125,112 @@ namespace anpi {
 		}
 	}
 
-}
+namespace simd{
+
+using namespace std;
+template<typename T,class alloc,typename regType>
+    inline void luDoolittleSIMD(const Matrix<T,alloc>& A,
+                                Matrix<T,alloc>& LU,
+                                std::vector<size_t>& permut){
+	//First corroboration.
+	if(A.rows() != A.cols())throw anpi::Exception("Matrix not square");
+
+	const std::size_t matrixSize = A.rows(); //tamaño de la matriz
+
+	const size_t stepSize = ceil(static_cast<float>(sizeof(regType))/static_cast<float>(sizeof(T))); //tamaño de los pasos
+	const size_t stepTotal = static_cast<size_t>(A.dcols())/stepSize;//cantidad de pasos
+
+	size_t i,j,k,t; //variables de iteracion
+	T major; //mayor magnitud de la columna
+	LU = A;
+
+	regType* firstRow = reinterpret_cast<regType*>(LU.data()); //casteo el puntero de tipo T a regType
+	regType* nextRow = firstRow + stepTotal; //casteo de puntero a la segunda columna
+	regType* temporalRow = firstRow; //puntero temporal para pivote
+	regType temporalData; //dato tempporal para pivote
+
+
+	//llenado del vecto de permutacion
+	permut.resize(matrixSize);
+	for (std::size_t i = 0 ; i < matrixSize ; ++i)permut[i] = T(i);
+
+	//copia de la matriz original
+	Matrix<T,alloc> matrizTemporal;
+	matrizTemporal=LU; //se opera en temporal y luego se copia a LU
+
+	for(i=0; i<A.rows();++i){ //for 1
+		major = abs(LU[i][i]);
+		t = i;
+		for(j=i;j<A.rows();++j){//for 2
+			if(major<abs(LU[j][i])){//if 1
+				major=abs(LU[j][i]);
+				t = j;
+
+			}//if 1
+		}//for 2
+
+		if(t!=i){//if 2
+			k = permut[i];
+			permut[i] = permut[t];
+			permut[t] = k;
+		}//if 2
+
+		if(major == T(0)){//if 3
+			throw anpi::Exception("Singular matrix");
+		}//if 3
+
+		if(size_t(permut[i])!=i){//if 4
+			regType* LUrow1 = reinterpret_cast<regType*>(LU.data());
+			regType* LUrow2 = reinterpret_cast<regType*>(LU.data());
+			regType* MTrow1 = reinterpret_cast<regType*>(matrizTemporal.data());
+			regType* MTrow2 = reinterpret_cast<regType*>(matrizTemporal.data());
+
+			LUrow1+=t*stepTotal;
+			MTrow1+=t*stepTotal;
+			LUrow2+=i*stepTotal;
+			MTrow2+=i*stepTotal;
+
+			for(k=0; k<stepTotal; ++k){//for 3
+				temporalData = *LUrow1;
+				*LUrow1 = *LUrow2;
+				*LUrow2 = temporalData;
+
+				temporalData = *MTrow1;
+				*MTrow1 = *MTrow2;
+				*MTrow2 = temporalData;
+
+				LUrow1++;
+				LUrow2++;
+				MTrow1++;
+				MTrow2++;
+
+
+			}//for 3
+		}//if 4
+
+		temporalRow = firstRow;
+		for(j=i+1; j<A.rows();++j){//for 4
+
+			T coeficiente = LU(j,i)/LU(i,i);
+			matrizTemporal(j,i) = coeficiente;
+			for(k=0; k<stepTotal; ++k){//for 5
+				regType multiply = *firstRow * static_cast<regType>(coeficiente);
+				*nextRow-=multiply;
+				nextRow++;
+				firstRow++;
+			}//for 5
+			firstRow = temporalRow;
+
+		}//for 4
+		firstRow+=stepTotal;
+		nextRow=firstRow+stepTotal;
+
+	}//for 1
+	LU=matrizTemporal;
+
+    }//cierra el luDoolittleSIMD
+}//cierra SiMD
+}//cierra anpi
   
 #endif
 
