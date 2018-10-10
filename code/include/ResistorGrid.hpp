@@ -4,62 +4,75 @@
  *
  * This file is part of the numerical analysis lecture CE3102 at TEC
  *
- * @Author: Pablo Bustamante Mora
+ * @Author: Juan Pablo Brenes Coto
  * @Date  : 07.10.2018
  */
 
+#ifndef ANPI_RESISTORGRID_HPP
+#define ANPI_RESISTORGRID_HPP
 
 #include <iostream>
 #include "Exception.hpp"
 #include <stdlib.h>
 #include <vector>
-#include <iostream>
 
-namespace anpi{
+#include "Matrix.hpp"
 
+namespace anpi {
+
+//Pack a pair of indices of the nodes of a resistor
 struct IndexPair{
-
 	std::size_t row1;
 	std::size_t col1;
 	std::size_t row2;
 	std::size_t col2;
+  };
 
-};
-	std::size_t nodesToIndex(const std::size_t inputRow1, const std::size_t inputCol1,
-				const std::size_t inputRow2,
-				const std::size_t inputCol2, std::vector<IndexPair>& vector){
+  class ResistorGrid {
+  private:
+    //Matrix of the current equation system
+    Matrix<float> A_;
+    //Vector of the current equation system
+    std::vector<float> b_;
+    //Vector of solutions of the current equation system
+    std::vector<float> x_;
 
-		if(inputRow1 != inputRow2){
-			if(inputCol1 != inputCol2)
-				throw anpi::Exception("Nodos no adyacentes");
-			else{
-				IndexPair resistencia1;
-				resistencia1.col1 = inputCol1;
-				resistencia1.row1 = inputRow1;
-				resistencia1.col2 = inputCol2;
-				resistencia1.row2 = inputRow2;
-				vector.push_back(resistencia1);
-			}
-		}
-		else{
-			IndexPair resistencia1;
-			resistencia1.col1 = inputCol1;
-			resistencia1.row1 = inputRow1;
-			resistencia1.col2 = inputCol2;
-			resistencia1.row2 = inputRow2;
-			vector.push_back(resistencia1);
-		}
-		std::size_t resistorIndex = vector.size() -1;
+    //Raw map data
+    Matrix<float> rawMap_;
 
-		return resistorIndex;
+    /**
+     * Load the image of a map and converts it to anpi Matrix
+     */
+    void loadMap(std::string filename);
 
-	}
+  public:
+    //Constructors
+    ResistorGrid();
 
-	IndexPair indexToNodes(const std::size_t idx,
-			const std::vector<IndexPair>& vector){
-		IndexPair resistor;
-		resistor = vector[idx];
-		return resistor;
-	}
+    /**
+     * Maps the index of the terminal nodes of a resistor to a linear index
+     */
+    std::size_t nodesToIndex(const std::size_t row1, const std::size_t col1, const std::size_t row2,
+        const std::size_t col2);
 
+    /**
+     * Convert and index to the pair of node coordinates
+     */
+    IndexPair indexToNodes(const std::size_t idx);
+
+    /**
+     * Construct the grid from the given file
+     * @return true if successful or false otherwise
+     */
+    bool build(const std::string filename);
+
+    /**
+     * Compute the internal data to navigate between the given nodes
+     */
+    bool navigate(const IndexPair& nodes);
+  };
 }
+
+#include "ResistorGrid.cpp"
+
+#endif
